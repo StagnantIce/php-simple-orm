@@ -33,6 +33,32 @@ class Product extends Record {
 // Product::createTable(); - for first run.
 
 ```
+## Examples
+
+```
+// Get product by id = 1
+
+$product = Product::select(
+  Product::sql()->eq(
+      Product::columns()->id,
+      1
+  )
+);
+```
+
+// Get products by price < 1000, desc by price, offset 20 and limit 20.
+
+$product = Product::selectAll(
+  Product::sql()
+      ->lt(
+          Product::columns()->price,
+          1000
+      )
+      ->limit(20, 20)
+      ->desc(Product::columns()->price)
+);
+```
+
 ## Record
  
 #### Record::select(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return object, null or json.
@@ -53,24 +79,8 @@ class Product extends Record {
 
 #### Record::insert(array $fields): int - insert row,
 #### Record::update(array $fields, string $sql = null): int - update rows and return number of affected rows.
-#### Product::columns()
-
-Easy way to get names for your columns.
-
-```
-// Get product by id = 1
-
-$product = Product::select(
-  Product::sql()->eq(
-      Product::columns()->id,
-      1
-  )
-);
-```
-
-#### Product::sql()
-
-SQL builder. If call toString() method its return part of SQL query.
+#### Product::columns() - Easy way to get names for your columns.
+#### Product::sql() - Sql class. See below.
 
 ## Sql
 
@@ -82,7 +92,8 @@ Sql::lt()
 Sql::lte()
 Sql::gt()
 Sql::gte()
-Sql::order()
+Sql::asc()
+Sql::desc()
 Sql::group()
 Sql::having()
 Sql::join()
