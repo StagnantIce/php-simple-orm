@@ -61,6 +61,27 @@ $product = Product::selectAll(
 );
 ```
 
+```
+// Delete row with id = 12
+
+Product::delete(
+    Product::sql()->eq(Product::columns()->id, 12)
+);
+
+```
+
+```
+// Update row with id = 12
+
+Product::update(
+    [
+        Product::columns()->price => 20000
+    ],
+    Product::sql()->eq(Product::columns()->id, 12)
+);
+
+```
+
 ## Files
 
 ### Main
