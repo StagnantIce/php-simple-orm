@@ -33,14 +33,14 @@ class Product extends Record {
 // Product::createTable(); - for first run.
 
 ```
-## Properties
+## Record
  
-### Record::select(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return object, null or json.
+#### Record::select(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return object, null or json.
 - $sql - you can use Product:sql()
 - $fields - you can use Product::columns()->..
 - $serialize - return array of objects or json.
 
-### Record::selectAll(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return objects or json.
+#### Record::selectAll(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return objects or json.
 - $sql - you can use Product:sql()
 - $fields - you can use Product::columns()->..
 - $serialize - return array of objects or json.
@@ -48,12 +48,12 @@ class Product extends Record {
 ### Record::count(string $sql = '') - return count of rows.
 - $sql - you can use Product:sql()
 
-### Record::delete(string $sql = null) - delete rows and return number of affected rows.
+#### Record::delete(string $sql = null) - delete rows and return number of affected rows.
 - $sql - you can use Product:sql()
 
-### Record::insert(array $fields): int - insert row,
-### Record::update(array $fields, string $sql = null): int - update rows and return number of affected rows.
-### Product::columns()
+#### Record::insert(array $fields): int - insert row,
+#### Record::update(array $fields, string $sql = null): int - update rows and return number of affected rows.
+#### Product::columns()
 
 Easy way to get names for your columns.
 
@@ -68,11 +68,16 @@ $product = Product::select(
 );
 ```
 
-### Product::sql()
+#### Product::sql()
 
 SQL builder. If call toString() method its return part of SQL query.
 
-Sql::eq()
+## Sql
+
+Sql::eq(string $field, $value) - Add condition for Where, Join or Having.
+- $field - column name, use Record::columns().
+- $value - value for compare.
+- 
 Sql::lt()
 Sql::lte()
 Sql::gt()
@@ -80,3 +85,6 @@ Sql::gte()
 Sql::order()
 Sql::group()
 Sql::having()
+Sql::join()
+Sql::or()
+Sql::and()
