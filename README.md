@@ -106,7 +106,7 @@ Product::update(
 - $fields - you can use Product::columns()->..
 - $serialize - return array of objects or json.
 
-### Record::count(string $sql = '') - return count of rows.
+#### Record::count(string $sql = '') - return count of rows.
 - $sql - you can use Product:sql()
 
 #### Record::delete(string $sql = null) - delete rows and return number of affected rows.
