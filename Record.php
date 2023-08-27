@@ -84,40 +84,46 @@ class Record implements \JsonSerializable {
     }
 
     /**
+     * @param array<string, string|int> $fields
      * @throws MySqlException
      */
-    public static function insert(array $prepareFields): int {
+    public static function insert(array $fields): int {
         $table = self::table();
-        self::q('INSERT INTO '.$table.' ('. implode(', ', array_keys($prepareFields)). ') VALUES ('
-            . implode(', ', array_values($prepareFields)) .')');
+        self::q('INSERT INTO '.$table.' ('. implode(', ', array_keys($fields)). ') VALUES ('
+            . implode(', ', array_values($fields)) .')');
         return self::$conn->insert_id;
     }
 
     /**
-     * @throws MySqlException
+     * @param array<string, string|int> $fields
+     * @param string|Sql|null $sql
+     * @return int
      */
-    public static function update(array $prepareFields, string $where = null): int {
+    public static function update(array $fields, string $sql = null): int {
         $table = self::table();
         $q = "UPDATE `$table` SET ";
-        $where = $where ? " WHERE $where" : '';
-        foreach($prepareFields as $k => &$v) $v = $k.' = '.$v;
-        $q .= implode(',', $prepareFields);
-        $q .= $where;
+        foreach($fields as $k => &$v) $v = $k.' = '.$v;
+        $q .= implode(',', $fields);
+        $q .= $sql;
         self::q($q);
         return self::$conn->affected_rows;
     }
 
     /**
+     * @param string|Sql|null $sql
+     * @return int
      * @throws MySqlException
      */
-    public static function delete(string $where = null): int {
+    public static function delete(string $sql = null): int {
         $table = self::table();
-        $where = $where ? " WHERE $where" : '';
-        self::q("DELETE FROM `$table` $where");
+        self::q("DELETE FROM `$table` $sql");
         return self::$conn->affected_rows;
     }
 
     /**
+     * @param string|Sql|null $sql
+     * @param array<string, string|int> $fields
+     * @param bool $serialize
      * @throws MySqlException
      * @return static[]
      */
@@ -138,6 +144,11 @@ class Record implements \JsonSerializable {
         return $result;
     }
 
+    /**
+     * @param string|Sql|null $sql
+     * @return int
+     * @throws MySqlException
+     */
     public static function count(string $sql = ''): int {
         $table = self::table();
         $res = self::q("SELECT COUNT(*) as CNT FROM $table $sql");
@@ -174,7 +185,7 @@ class Record implements \JsonSerializable {
 
     /**
      * @param string|Sql $sql
-     * @param array $fields
+     * @param array<string, string|int> $fields
      * @param bool $serialize
      * @return static|null
      */
