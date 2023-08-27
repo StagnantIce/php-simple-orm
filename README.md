@@ -5,6 +5,19 @@ PHP 7.4 Required.
 Create simple and fast ORM in just 2 steps.
 
 1) Create MySql database and write login and password in config.php
+
+```
+<?php
+
+return [
+    'host' => 'localhost',
+    'login' => 'root',
+    'password' => 'root',
+    'name' => 'tests',
+    'encode' => 'utf8'
+];
+```
+
 2) Write class name for your table (Product.php example):
 
 ```
