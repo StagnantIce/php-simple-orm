@@ -46,6 +46,8 @@ $product = Product::select(
 );
 ```
 
+```
+
 // Get products by price < 1000, desc by price, offset 20 and limit 20.
 
 $product = Product::selectAll(
@@ -59,6 +61,18 @@ $product = Product::selectAll(
 );
 ```
 
+## Files
+
+### Main
+1) Record - main active record.
+2) Sql - sql builder for where, join, group, order, limit and having.
+3) MySqlException - exception class.
+
+### Additional   
+5) config.php - config for db connection.
+6) load.php - entry point.
+7) Product.php - example of active record.
+   
 ## Record
  
 #### Record::select(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return object, null or json.
