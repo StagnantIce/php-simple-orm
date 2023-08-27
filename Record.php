@@ -89,6 +89,7 @@ class Record implements \JsonSerializable {
      */
     public static function insert(array $fields): int {
         $table = self::table();
+        $fields = self::prepare($fields);
         self::q('INSERT INTO '.$table.' ('. implode(', ', array_keys($fields)). ') VALUES ('
             . implode(', ', array_values($fields)) .')');
         return self::$conn->insert_id;
@@ -101,6 +102,7 @@ class Record implements \JsonSerializable {
      */
     public static function update(array $fields, string $sql = null): int {
         $table = self::table();
+        $fields = self::prepare($fields);
         $q = "UPDATE `$table` SET ";
         foreach($fields as $k => &$v) $v = $k.' = '.$v;
         $q .= implode(',', $fields);
@@ -161,7 +163,11 @@ class Record implements \JsonSerializable {
         $result = [];
 
         foreach($props as $p) {
-            $result[$p->getName()] = $p->getType()->getName();
+            $type = $p->getType()->getName();
+            if ($type === 'string') {
+                $type = 'text';
+            }
+            $result[$p->getName()] = $type;
         }
         return $result;
     }
@@ -173,14 +179,17 @@ class Record implements \JsonSerializable {
         $columns = self::getColumnTypes();
         $cols = [];
         foreach($columns as $name => $type) {
-            if ($type === 'string') {
-                $type = 'text';
-            }
             $cols[]="\t"."`$name`".' ' . $type;
         }
         $table = self::table();
         $sql="CREATE TABLE IF NOT EXISTS `$table` (\n". implode(",\n", $cols) . "\n) $options";
         self::q($sql);
+    }
+
+    public static function dropTable(): void
+    {
+        $table = self::table();
+        self::q("DROP TABLE `$table`");
     }
 
     /**
@@ -205,5 +214,112 @@ class Record implements \JsonSerializable {
             $result[$key] = $value;
         }
         return $result;
+    }
+
+    private static array $column_cache = [];
+    public static function tableFields($table): array
+    {
+        if (!array_key_exists($table, self::$column_cache))
+        {
+            self::$column_cache[$table] = array();
+            $res = self::q("SHOW COLUMNS FROM $table");
+            while($row = $res->fetch_assoc())
+            {
+                self::$column_cache[$table][$row["Field"]] = preg_replace('/\(\d+\)/', '', $row['Type']);
+            }
+        }
+        return self::$column_cache[$table];
+    }
+
+    private static function prepare(array $fields): array {
+        $newFields = [];
+        $types = self::tableFields(self::table());
+
+        foreach ($fields as $param => &$value) {
+            // not field
+            if (!isset($types[$param])){
+                continue;
+            } else if (is_null($value) || $value === 'NULL') {
+                $value = 'NULL';
+            } else if (self::isField($value)) {
+                if (substr_count($value, '"') % 2 != 0 || substr_count($value, "'") % 2 != 0) {
+                    $value = self::escape($value);
+                }
+            } else {
+                if (is_bool($value)) {
+                    $value = intval($value);
+                }
+                // string, int, float, date
+                switch($types[$param]) {
+                    case 'string':
+                    case 'varchar':
+                    case 'blob':
+                    case 'char':
+                    case 'text':
+                        if (is_numeric($value)) {
+                            $value = (string)$value;
+                        }
+                        if (is_string($value)) {
+                            $value = '"' . self::escape($value) . '"';
+                        } else {
+                            $value = serialize($value);
+                            throw new MySqlException("Error prepare $param field with not string value $value.");
+                        }
+                        break;
+                    case 'real':
+                    case 'float':
+                    case 'decimal':
+                        if (is_numeric($value)){
+                            $value = DoubleVal($value);
+                        } else if (is_string($value) && !trim($value)){
+                            $value = 0;
+                        } else {
+                            $value = serialize($value);
+                            throw new MySqlException("Error prepare $param field with not float value $value.");
+                        }
+                        break;
+                    case 'int':
+                    case 'tinyint':
+                        if (is_numeric($value)){
+                            $value = intval($value);
+                        } else if (is_string($value) && !trim($value)){
+                            $value = 0;
+                        } else {
+                            $value = serialize($value);
+                            throw new MySqlException("Error prepare $param field with not int value $value.");
+                        }
+                        break;
+                    case 'datetime':
+                    case 'timestamp':
+                    case 'time':
+                    case 'date':
+                        if (is_numeric($value)) {
+                            $value = intval($value);
+                        } else if (is_string($value) && strtotime($value) !== false) {
+                            $value = '"' . self::escape($value) . '"';
+                        } else if (!trim($value)) {
+                            $value = 'NULL';
+                        } else {
+                            $value = serialize($value);
+                            throw new MySqlException("Error prepare $param field with not date/time value $value.");
+                        }
+                        break;
+                    default:
+                        throw new MySqlException("Prepare error. Unexpected field type ". $types[$param] .'.');
+                }
+            }
+            $newFields[$param] = $value;
+        }
+        return $newFields;
+    }
+
+    public static function isField($string): bool {
+        if (
+            strpos($string, 'DATE_ADD(') === 0
+            || strpos($string, 'NOW(') === 0
+        ) {
+            return true;
+        }
+        return false;
     }
 }

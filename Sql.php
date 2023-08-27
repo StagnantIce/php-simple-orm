@@ -5,7 +5,7 @@ class Sql extends Record {
     private array $having = [];
     private array $join = [];
     private string $group = '';
-    private string $order = '';
+    private array $order = [];
     private string $table;
     private bool $isHaving = false;
     private bool $isJoin = false;
@@ -96,16 +96,21 @@ class Sql extends Record {
         return $this;
     }
 
-    public function order(array $orders): self {
-        $res = [];
-        foreach($orders as $field => $order) {
-            if (is_numeric($field)) {
-                $res[0] .= ' ' . $order;
-            } else {
-                $res[] = $this->findAndReplaceTableName($field) . $order;
-            }
-        }
-        $this->order = ' ORDER BY '. implode(', ', $res).' ';
+    /**
+     * @param string $field
+     * @return $this
+     */
+    public function asc(string $field): self {
+        $this->order[] = $this->findAndReplaceTableName($field) . ' ASC';
+        return $this;
+    }
+
+    /**
+     * @param string $field
+     * @return $this
+     */
+    public function desc(string $field): self {
+        $this->order[] = $this->findAndReplaceTableName($field) . ' ASC';
         return $this;
     }
 
@@ -116,7 +121,7 @@ class Sql extends Record {
             . ($this->where[0] ?? '')
             . $this->group
             . ($this->having[0] ?? '')
-            . $this->order
+            . ($this->order ? ' ORDER BY ' . implode(', ', $this->order) : '')
             . $this->limit;
     }
 
