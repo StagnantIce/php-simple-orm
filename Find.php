@@ -1,6 +1,6 @@
 <?php
 
-class Sql extends Record {
+class Find extends Record {
     private array $where = [];
     private array $having = [];
     private array $join = [];
@@ -11,9 +11,16 @@ class Sql extends Record {
     private bool $isJoin = false;
     private string $limit = '';
     private string $groupCondition = 'AND';
+    private ?string $className = null;
 
-    public function __construct(string $table) {
+    public function __construct(string $table, string $className = null) {
         $this->table = $table;
+        $this->className = $className;
+        parent::__construct();
+    }
+
+    public function getClass(): ?string {
+        return $this->className;
     }
 
     public function or(): self {
@@ -118,7 +125,7 @@ class Sql extends Record {
     {
         $this->groupCondition();
         return ($this->join[0] ?? '')
-            . ($this->where[0] ?? '')
+            . (isset($this->where[0]) ? " WHERE {$this->where[0]}" : '')
             . $this->group
             . ($this->having[0] ?? '')
             . ($this->order ? ' ORDER BY ' . implode(', ', $this->order) : '')
@@ -126,7 +133,9 @@ class Sql extends Record {
     }
 
     private function addCondition(string $field, string $formula, $value): self {
-        $cond = $this->findAndReplaceTableName($field) . $formula . (is_numeric($value) ? $value : Record::escape($value));
+        $cond = $this->findAndReplaceTableName($field)
+            . $formula
+            . (is_numeric($value) ? $value : '"' . Record::escape($value) . '"');
         if ($this->isHaving) {
             $this->having[] = $cond;
         } else if ($this->isJoin) {
@@ -138,12 +147,12 @@ class Sql extends Record {
     }
 
     private function groupCondition(): void {
-        if ($this->isHaving) {
-            $this->having = [ '(' . implode($this->groupCondition, $this->having) . ')'];
-        } else if ($this->isJoin) {
-            $this->join = [ '(' . implode($this->groupCondition, $this->join) . ')'];
-        } else {
-            $this->where = [ '(' . implode($this->groupCondition, $this->where) . ')'];
+        if ($this->isHaving && $this->having) {
+            $this->having = [ '(' . implode(" $this->groupCondition ", $this->having) . ')'];
+        } else if ($this->isJoin && $this->join) {
+            $this->join = [ '(' . implode(" $this->groupCondition ", $this->join) . ')'];
+        } else if ($this->where) {
+            $this->where = [ '(' . implode(" $this->groupCondition ", $this->where) . ')'];
         }
     }
 }

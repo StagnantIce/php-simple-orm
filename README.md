@@ -38,47 +38,43 @@ class Product extends Record {
 ```
 // Get product by id = 1
 
-$product = Product::select(
-  Product::sql()->eq(
-      Product::props()->id,
-      1
-  )
-);
+Product::find()
+    ->eq(Product::props()->id, 1)
+    ->one();
+
 ```
 
 ```
 
 // Get products by price < 1000, desc by price, offset 20 and limit 20.
 
-$product = Product::selectAll(
-  Product::sql()
+$product = Product::find()
       ->lt(
           Product::props()->price,
           1000
       )
       ->limit(20, 20)
       ->desc(Product::props()->price)
-);
+      ->all();
 ```
 
 ```
 // Delete row with id = 12
 
-Product::delete(
-    Product::sql()->eq(Product::props()->id, 12)
-);
+Product::find()
+    ->eq(Product::props()->id, 12)
+    ->remove();
 
 ```
 
 ```
 // Update row with id = 12
 
-Product::update(
-    [
+Product::find()
+    ->eq(Product::props()->id, 12)
+    ->save([
         Product::props()->price => 20000
-    ],
-    Product::sql()->eq(Product::props()->id, 12)
-);
+    ]);
 
 ```
 
@@ -86,12 +82,10 @@ Product::update(
 
 ### Main
 1) Record - main active record.
-2) Sql - sql builder for where, join, group, order, limit and having.
+2) Find - sql builder for where, join, group, order, limit and having.
 3) MySqlException - exception class.
 
-### Additional   
-5) config.php - config for db connection.
-6) load.php - entry point.
+### Additional
 7) Product.php - example of active record.
    
 ## Record
@@ -107,30 +101,30 @@ Product::update(
 - $serialize - return array of objects or json.
 
 #### Record::count(string $sql = '') - return count of rows.
-- $sql - you can use Product:sql()
+- $sql - you can use Product:find()
 
 #### Record::delete(string $sql = null) - delete rows and return number of affected rows.
-- $sql - you can use Product:sql()
+- $sql - you can use Product:find()
 
 #### Record::insert(array $fields): int - insert row,
 #### Record::update(array $fields, string $sql = null): int - update rows and return number of affected rows.
 #### Product::props() - Easy way to get names for your props.
-#### Product::sql() - Sql class. See below.
+#### Product::find() - Sql class. See below.
 
-## Sql
+## Find
 
-Sql::eq(string $field, $value) - Add condition for Where, Join or Having.
+Find::eq(string $field, $value) - Add condition for Where, Join or Having.
 - $field - column name, use Record::props().
 - $value - value for compare.
 - 
-Sql::lt()
-Sql::lte()
-Sql::gt()
-Sql::gte()
-Sql::asc()
-Sql::desc()
-Sql::group()
-Sql::having()
-Sql::join()
-Sql::or()
-Sql::and()
+Find::lt()
+Find::lte()
+Find::gt()
+Find::gte()
+Find::asc()
+Find::desc()
+Find::group()
+Find::having()
+Find::join()
+Find::or()
+Find::and()

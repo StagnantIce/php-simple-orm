@@ -9,16 +9,25 @@ class Record implements \JsonSerializable, \ArrayAccess {
         self::$conn = $conn;
     }
 
-    public function __construct(array $data = [])
+    public function __construct(array $dbRowData = [])
     {
-        foreach ($data as $key => $value) {
-            $this->$key = $value;
+        foreach ($dbRowData as $key => $value) {
+            if (property_exists($this, $key)) {
+                $this->$key = $value;
+            }
         }
     }
 
     public static function table(): string {
         $array = explode('\\', static::class);
+        if ($array[0] === 'Find') {
+            throw new \Exception('Error');
+        }
         return strtolower(end($array));
+    }
+
+    public static function primaryKey(): string {
+        return 'id';
     }
 
     /**
@@ -92,7 +101,7 @@ class Record implements \JsonSerializable, \ArrayAccess {
 
     /**
      * @param array<string, string|int> $fields
-     * @throws MySqlException
+     * @throws MySqlException|Exception
      */
     public static function insert(array $fields): int {
         $table = self::table();
@@ -104,8 +113,9 @@ class Record implements \JsonSerializable, \ArrayAccess {
 
     /**
      * @param array<string, string|int> $fields
-     * @param string|Sql|null $sql
+     * @param string|Find|null $sql
      * @return int
+     * @throws Exception
      */
     public static function update(array $fields, string $sql = null): int {
         $table = self::table();
@@ -119,9 +129,9 @@ class Record implements \JsonSerializable, \ArrayAccess {
     }
 
     /**
-     * @param string|Sql|null $sql
+     * @param string|Find|null $sql
      * @return int
-     * @throws MySqlException
+     * @throws MySqlException|Exception
      */
     public static function delete(string $sql = null): int {
         $table = self::table();
@@ -130,33 +140,32 @@ class Record implements \JsonSerializable, \ArrayAccess {
     }
 
     /**
-     * @param string|Sql|null $sql
+     * @param string|Find|null $sql
      * @param array<string, string|int> $fields
      * @param bool $serialize
-     * @throws MySqlException
-     * @return static[]
+     * @return static[]|array[]
+     * @throws MySqlException|Exception
      */
     public static function selectAll(string $sql = '', array $fields = [], bool $serialize = false): array {
-        $table = self::table();
+        return static::classSelectAll(static::class, $sql, $fields, $serialize);
+    }
+
+    public static function classSelectAll(string $className, string $sql = '', array $fields = [], bool $serialize = false): array {
+        $table = $className::table();
         $fieldsSql = $fields ? implode(', ', $fields) : '*';
         $res = self::q("SELECT $fieldsSql FROM `$table` $sql");
         $result = [];
         while ($row = $res->fetch_assoc()) {
-            $obj = new static();
-            foreach ($row as $key => $value) {
-                if (property_exists($obj, $key)) {
-                    $obj->$key = $value;
-                }
-            }
+            $obj = new $className($row);
             $result[] = $serialize ? $obj->jsonSerialize() : $obj;
         }
         return $result;
     }
 
     /**
-     * @param string|Sql|null $sql
+     * @param string|Find|null $sql
      * @return int
-     * @throws MySqlException
+     * @throws MySqlException|Exception
      */
     public static function count(string $sql = ''): int {
         $table = self::table();
@@ -181,15 +190,15 @@ class Record implements \JsonSerializable, \ArrayAccess {
 
     /**
      * @return void
+     * @throws Exception
      */
     public static function createTable(
-        string $options = ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci',
-        string $idField = 'id'
+        string $options = ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci'
     ) {
         $columns = self::getColumnTypes();
         $cols = [];
         foreach($columns as $name => $type) {
-            if ($name === $idField) {
+            if ($name === self::primaryKey()) {
                 $type .= ' NOT NULL AUTO_INCREMENT';
             }
             $cols[]="\t"."`$name`".' ' . $type;
@@ -197,7 +206,7 @@ class Record implements \JsonSerializable, \ArrayAccess {
         $table = self::table();
 
         $sql="CREATE TABLE IF NOT EXISTS `$table` (\n". implode(",\n", $cols)
-            . (isset($columns[$idField]) ? ', PRIMARY KEY (id)' : '')
+            . (isset($columns[self::primaryKey()]) ? ', PRIMARY KEY (' . self::primaryKey() . ')' : '')
             . "\n) $options";
         self::q($sql);
     }
@@ -209,17 +218,82 @@ class Record implements \JsonSerializable, \ArrayAccess {
     }
 
     /**
-     * @param string|Sql $sql
+     * @param string|Find $sql
      * @param array<string, string|int> $fields
      * @param bool $serialize
-     * @return static|null
+     * @return static|array|null
+     * @throws Exception
      */
     public static function select(string $sql = '', array $fields = [], bool $serialize = false): ?self {
-        return self::selectAll($sql, $fields, $serialize)[0] ?? null;
+        return static::selectAll($sql, $fields, $serialize)[0] ?? null;
     }
 
-    public static function sql(): Sql {
-        return new Sql(self::table());
+    public static function classSelect(
+        string $className,
+        string $sql = '',
+        array $fields = [],
+        bool $serialize = false
+    ): ?self {
+        return static::classSelectAll($className, $sql, $fields, $serialize)[0] ?? null;
+    }
+
+    /**
+     * @param array<string, string|int> $fields
+     * @return static[]
+     * @throws MySqlException|Exception
+     */
+    public function all(array $fields = []): array
+    {
+        if (!$this instanceof Find) {
+            throw new \Exception('find() not called');
+        }
+        return static::classSelectAll($this->getClass(), $this, $fields);
+    }
+
+    /**
+     * @param array<string, string|int> $fields
+     * @return static|null
+     * @throws MySqlException|Exception
+     */
+    public function one(array $fields = []): ?self
+    {
+        if (!$this instanceof Find) {
+            throw new \Exception('find() not called');
+        }
+        return static::classSelect($this->getClass(), $this, $fields);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function save(array $fields = null): int {
+        $idField = self::primaryKey();
+        $res = null;
+        if (isset($this->$idField)) {
+            $res = static::find()->eq($idField, $this->$idField)->one([$this->$idField]);
+        }
+        if ($res) {
+            return self::update($fields ?? $this->jsonSerialize(), static::find()->eq($idField, $this->$idField));
+        } else {
+            return self::insert($fields ?? $this->jsonSerialize());
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function remove(): int {
+        $idField = self::primaryKey();
+        return self::delete(self::find()->eq($idField, self::primaryKey()));
+    }
+
+    /**
+     * @return static|Find
+     * @throws Exception
+     */
+    public static function find(): Find
+    {
+        return new Find(static::table(), static::class);
     }
 
     public function jsonSerialize(): array
