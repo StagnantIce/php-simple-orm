@@ -1,12 +1,19 @@
 <?php
 
-class Record implements \JsonSerializable {
+class Record implements \JsonSerializable, \ArrayAccess {
     /** @var Record[] */
     private static array $props = [];
     protected static ?mysqli $conn = null;
     protected static string $last = '';
     public static function setConnection(?mysqli $conn) {
         self::$conn = $conn;
+    }
+
+    public function __construct(array $data = [])
+    {
+        foreach ($data as $key => $value) {
+            $this->$key = $value;
+        }
     }
 
     public static function table(): string {
@@ -17,7 +24,7 @@ class Record implements \JsonSerializable {
     /**
      * @return static
      */
-    public static function columns(): self
+    public static function props(): self
     {
         $className = static::class;
 
@@ -175,14 +182,23 @@ class Record implements \JsonSerializable {
     /**
      * @return void
      */
-    public static function createTable(string $options = ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci') {
+    public static function createTable(
+        string $options = ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci',
+        string $idField = 'id'
+    ) {
         $columns = self::getColumnTypes();
         $cols = [];
         foreach($columns as $name => $type) {
+            if ($name === $idField) {
+                $type .= ' NOT NULL AUTO_INCREMENT';
+            }
             $cols[]="\t"."`$name`".' ' . $type;
         }
         $table = self::table();
-        $sql="CREATE TABLE IF NOT EXISTS `$table` (\n". implode(",\n", $cols) . "\n) $options";
+
+        $sql="CREATE TABLE IF NOT EXISTS `$table` (\n". implode(",\n", $cols)
+            . (isset($columns[$idField]) ? ', PRIMARY KEY (id)' : '')
+            . "\n) $options";
         self::q($sql);
     }
 
@@ -198,7 +214,7 @@ class Record implements \JsonSerializable {
      * @param bool $serialize
      * @return static|null
      */
-    public static function select(string $sql = '', array $fields = [], bool $serialize = false): ?static {
+    public static function select(string $sql = '', array $fields = [], bool $serialize = false): ?self {
         return self::selectAll($sql, $fields, $serialize)[0] ?? null;
     }
 
@@ -321,5 +337,25 @@ class Record implements \JsonSerializable {
             return true;
         }
         return false;
+    }
+
+    public function offsetExists($offset): bool
+    {
+        return isset($this->$offset);
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->$offset;
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        $this->$offset = $value;
+    }
+
+    public function offsetUnset($offset)
+    {
+        unset($this->$offset);
     }
 }

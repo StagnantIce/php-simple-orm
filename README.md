@@ -40,7 +40,7 @@ class Product extends Record {
 
 $product = Product::select(
   Product::sql()->eq(
-      Product::columns()->id,
+      Product::props()->id,
       1
   )
 );
@@ -53,11 +53,11 @@ $product = Product::select(
 $product = Product::selectAll(
   Product::sql()
       ->lt(
-          Product::columns()->price,
+          Product::props()->price,
           1000
       )
       ->limit(20, 20)
-      ->desc(Product::columns()->price)
+      ->desc(Product::props()->price)
 );
 ```
 
@@ -65,7 +65,7 @@ $product = Product::selectAll(
 // Delete row with id = 12
 
 Product::delete(
-    Product::sql()->eq(Product::columns()->id, 12)
+    Product::sql()->eq(Product::props()->id, 12)
 );
 
 ```
@@ -75,9 +75,9 @@ Product::delete(
 
 Product::update(
     [
-        Product::columns()->price => 20000
+        Product::props()->price => 20000
     ],
-    Product::sql()->eq(Product::columns()->id, 12)
+    Product::sql()->eq(Product::props()->id, 12)
 );
 
 ```
@@ -98,12 +98,12 @@ Product::update(
  
 #### Record::select(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return object, null or json.
 - $sql - you can use Product:sql()
-- $fields - you can use Product::columns()->..
+- $fields - you can use Product::props()->..
 - $serialize - return array of objects or json.
 
 #### Record::selectAll(string $sql = '', array $fields = [], bool $serialize = false) - Make select query and return objects or json.
 - $sql - you can use Product:sql()
-- $fields - you can use Product::columns()->..
+- $fields - you can use Product::props()->..
 - $serialize - return array of objects or json.
 
 #### Record::count(string $sql = '') - return count of rows.
@@ -114,13 +114,13 @@ Product::update(
 
 #### Record::insert(array $fields): int - insert row,
 #### Record::update(array $fields, string $sql = null): int - update rows and return number of affected rows.
-#### Product::columns() - Easy way to get names for your columns.
+#### Product::props() - Easy way to get names for your props.
 #### Product::sql() - Sql class. See below.
 
 ## Sql
 
 Sql::eq(string $field, $value) - Add condition for Where, Join or Having.
-- $field - column name, use Record::columns().
+- $field - column name, use Record::props().
 - $value - value for compare.
 - 
 Sql::lt()

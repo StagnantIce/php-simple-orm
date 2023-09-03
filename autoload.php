@@ -14,3 +14,5 @@ try {
 }
 
 Record::q("SET NAMES '". $config['encode'] . "'");
+
+Product::createTable();
