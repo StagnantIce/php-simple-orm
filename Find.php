@@ -89,7 +89,7 @@ class Find extends Record {
     }
 
     public function findAndReplaceTableName($value) {
-        return preg_replace('/\*\.[`]?([A-Za-z_0-9]+)/', $this->table . ".`$1`", $value);
+        return preg_replace('/\*\.[`]?([A-Za-z_0-9]+)/', "`{$this->table}`.`$1`", $value);
     }
 
     public function group(array $groups): self {
