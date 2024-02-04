@@ -37,6 +37,19 @@ class Product extends Record {
 ```
 ## Examples
 
+// Create Product
+
+```
+
+$product = new Product([
+    Category::props()->name => 'Test',
+]);
+
+$product->save();
+
+```
+
+
 ```
 // Get product by id = 1
 
