@@ -18,6 +18,8 @@ return [
 ];
 ```
 
+And add require_once('init.php'); to your code.
+
 2) Write class name for your table (Product.php example):
 
 ```
