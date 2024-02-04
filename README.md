@@ -42,7 +42,7 @@ class Product extends Record {
 ```
 
 $product = new Product([
-    Category::props()->name => 'Test',
+    Product::props()->name => 'Test',
 ]);
 
 $product->save();
